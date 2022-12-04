@@ -1,0 +1,26 @@
+{
+  "base": "Stmt",
+  "baseName": "stmt",
+  "wraps": "*sql.Stmt",
+  "wrapName": "stmt",
+  "functions": [
+    {
+      "name": "Exec",
+      "returns": "*Result",
+      "onErrFactory": "EmptyResultOf",
+      "successFactory": "ResultOf",
+      "context": true,
+      "inflow": true,
+      "args": [
+        [
+          "dest",
+          "any"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    }
+  ]
+}

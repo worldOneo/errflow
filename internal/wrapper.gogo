@@ -1,25 +1,76 @@
 {{define "args"}}{{range .args}}{{index . 0}} {{index . 1}}, {{end}}{{end}}
 {{define "pass"}}{{range .args}}{{index . 0}}, {{end}}{{end}}
+{{$base := .}}
 type {{.base}} struct {
 	{{.wrapName}}   {{.wraps}}
 	errs errChain
 }
-{{with $base := .}}{{range .functions}}
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
-	return tx.{{.name}}ContextFlow(context.Background(), query, args...)
-}
 
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}ContextFlow(ctx context.Context, {{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
-	return SplitOf(tx.{{.name}}Context(ctx, {{template "pass" .}}), {{$base.baseName}})
-}
+{{range .functions}}{{ if not .noreturn }}
+{{if .inflow}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
+	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
+}{{end}}
 
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
-	return tx.{{.name}}Context(context.Background(), {{template "pass" .}})
-}
+	return Do(func() ({{.returns}}, error) {
+		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
+		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
+	}, {{$base.baseName}}, {{.onErrFactory}})
+}{{if .context}}
+{{if .inflow}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}ContextFlow(ctx context.Context, {{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
+	return SplitOf({{$base.baseName}}.{{.name}}Context(ctx, {{template "pass" .}}), {{$base.baseName}})
+}{{end}}
 
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) {{.returns}} {
 	return Do(func() ({{.returns}}, error) {
 		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
-		return result, err
+		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
 	}, {{$base.baseName}}, {{.onErrFactory}})
-}{{end}}{{end}}
+}{{end}}{{else}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
+	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}}) }, {{$base.baseName}})
+}
+{{if .context}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) *{{$base.base}} {
+	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}}) }, {{$base.baseName}})
+}
+{{end}}{{end}}{{end}}
+
+func ({{$base.baseName}} *{{$base.base}}) Err() error {
+	return {{$base.baseName}}.errs.Err()
+}
+
+func ({{$base.baseName}} *{{$base.base}}) Fail(err error) {
+	{{$base.baseName}}.errs.Fail(err)
+}
+
+func ({{$base.baseName}} *{{$base.base}}) Link() *error {
+	return {{$base.baseName}}.errs.Link()
+}
+
+func ({{$base.baseName}} *{{$base.base}}) LinkTo(err *error) {
+	{{$base.baseName}}.errs.LinkTo(err)
+}
+
+func ({{$base.baseName}} *{{$base.base}}) Unwrap() ({{$base.wraps}}, error) {
+	return {{$base.baseName}}.{{$base.wrapName}}, {{$base.baseName}}.Err()
+}
+
+func ({{$base.baseName}} *{{$base.base}}) Raw() {{$base.wraps}} {
+	return {{$base.baseName}}.{{$base.wrapName}}
+}
+
+func {{$base.base}}Of({{$base.wrapName}} {{$base.wraps}}, flow Linkable) *{{$base.base}} {
+	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: errChainOf(flow)}
+}
+
+func New{{$base.base}}Of({{$base.wrapName}} {{$base.wraps}}) *{{$base.base}} {
+	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: emptyChain()}
+}
+
+func Empty{{$base.base}}Of(err error) *{{$base.base}} {
+	return &{{$base.base}}{errs: errChainOfErr(err)}
+}
+

@@ -24,13 +24,13 @@ func test() (User, []Post, error) {
 	var user User
 	var posts []Post
 	var logID int64
-	flow := DB(db)
+	flow := NewDBxOf(db)
 	flow.
 		Beginx().
 		Get(&user, "SELECT * FROM usesr WHERE `name`=?;", "Bobby").
 		Get(&posts, "SELECT * FROM posts WHERE `userID`=?;", user.id).
 		ExecFlow("INSERT INTO logs").
-		Run(func(vr *VirtualResult) { logID, _ = vr.LastInsertId() }).
+		Run(func(vr *Result) { logID = vr.LastInsertId() }).
 		Commit()
 
 	if err := flow.Err(); err != nil {

@@ -1,0 +1,53 @@
+{
+  "base": "Stmtx",
+  "baseName": "stmt",
+  "wraps": "*sqlx.Stmt",
+  "wrapName": "stmt",
+  "functions": [
+    {
+      "name": "Exec",
+      "returns": "*Result",
+      "onErrFactory": "EmptyResultOf",
+      "successFactory": "ResultOf",
+      "context": true,
+      "inflow": true,
+      "args": [
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "Get",
+      "noreturn": true,
+      "context": true,
+      "args": [
+        [
+          "dest",
+          "any"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "Select",
+      "context": true,
+      "inflow": true,
+      "noreturn": true,
+      "args": [
+        [
+          "dest",
+          "any"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    }
+  ]
+}

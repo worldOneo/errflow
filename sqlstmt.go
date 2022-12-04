@@ -5,46 +5,65 @@ import (
 	"database/sql"
 )
 
-type VirtualStmt struct {
+type Stmt struct {
 	stmt *sql.Stmt
 	errs errChain
 }
 
-func stmtOf(stmt *sql.Stmt) *VirtualStmt {
-	return &VirtualStmt{stmt: stmt, errs: emptyChain()}
+func (stmt *Stmt) ExecFlow(args ...any) Splitted[*Result, *Stmt] {
+	return SplitOf(stmt.Exec(args...), stmt)
 }
 
-func emptyStmtOf(err error) *VirtualStmt {
-	return &VirtualStmt{errs: errChainOfErr(err)}
+func (stmt *Stmt) Exec(args ...any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := stmt.stmt.Exec(args...)
+		return ResultOf(result, stmt), err
+	}, stmt, EmptyResultOf)
 }
 
-func (s *VirtualStmt) Exec(args ...any) sql.Result {
-	return s.ExecContext(context.Background(), args...)
+func (stmt *Stmt) ExecContextFlow(ctx context.Context, args ...any) Splitted[*Result, *Stmt] {
+	return SplitOf(stmt.ExecContext(ctx, args...), stmt)
 }
 
-func (s *VirtualStmt) ExecContext(ctx context.Context, args ...any) sql.Result {
-	return Do(func() (sql.Result, error) {
-		result, err := s.stmt.ExecContext(ctx, args...)
-		return result, err
-	}, s, emptyResultOf)
+func (stmt *Stmt) ExecContext(ctx context.Context, args ...any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := stmt.stmt.ExecContext(ctx, args...)
+		return ResultOf(result, stmt), err
+	}, stmt, EmptyResultOf)
 }
 
-func (s *VirtualStmt) Err() error {
-	return s.errs.Err()
+func (stmt *Stmt) Err() error {
+	return stmt.errs.Err()
 }
 
-func (s *VirtualStmt) Fail(err error) {
-	s.errs.Fail(err)
+func (stmt *Stmt) Fail(err error) {
+	stmt.errs.Fail(err)
 }
 
-func (s *VirtualStmt) Link() *error {
-	return s.errs.Link()
+func (stmt *Stmt) Link() *error {
+	return stmt.errs.Link()
 }
 
-func (s *VirtualStmt) Destruct() (*sql.Stmt, error) {
-	return s.stmt, s.errs.Err()
+func (stmt *Stmt) LinkTo(err *error) {
+	stmt.errs.LinkTo(err)
 }
 
-func (s *VirtualStmt) Raw() *sql.Stmt {
-	return s.stmt
+func (stmt *Stmt) Unwrap() (*sql.Stmt, error) {
+	return stmt.stmt, stmt.Err()
+}
+
+func (stmt *Stmt) Raw() *sql.Stmt {
+	return stmt.stmt
+}
+
+func StmtOf(stmt *sql.Stmt, flow Linkable) *Stmt {
+	return &Stmt{stmt: stmt, errs: errChainOf(flow)}
+}
+
+func NewStmtOf(stmt *sql.Stmt) *Stmt {
+	return &Stmt{stmt: stmt, errs: emptyChain()}
+}
+
+func EmptyStmtOf(err error) *Stmt {
+	return &Stmt{errs: errChainOfErr(err)}
 }

@@ -2,49 +2,57 @@ package errflow
 
 import "database/sql"
 
-type VirtualResult struct {
-	res          sql.Result
-	errs         errChain
-	rowsAffected Box[int64]
-	lastInserted Box[int64]
+type Result struct {
+	result sql.Result
+	errs   errChain
 }
 
-func emptyResultOf(err error) sql.Result {
-	return &VirtualResult{errs: errChainOfErr(err)}
+func (result *Result) LastInsertId() int64 {
+	return Do(func() (int64, error) {
+		result, err := result.result.LastInsertId()
+		return result, err
+	}, result, func(_ error) int64 { return 0 })
 }
 
-func resultOf(res sql.Result, parent Linkable) sql.Result {
-	return &VirtualResult{res: res, errs: errChainOf(parent)}
+func (result *Result) RowsAffected() int64 {
+	return Do(func() (int64, error) {
+		result, err := result.result.RowsAffected()
+		return result, err
+	}, result, func(_ error) int64 { return 0 })
 }
 
-func (res *VirtualResult) LastInsertId() (int64, error) {
-	v, ok := res.lastInserted.Get()
-	if !ok {
-		v, _ = res.lastInserted.Fill(res.res.LastInsertId).Get()
-	}
-	return v, res.lastInserted.Err()
+func (result *Result) Err() error {
+	return result.errs.Err()
 }
 
-func (res *VirtualResult) RowsAffected() (int64, error) {
-	v, ok := res.rowsAffected.Get()
-	if !ok {
-		v, _ = res.rowsAffected.Fill(res.res.RowsAffected).Get()
-	}
-	return v, res.rowsAffected.Err()
+func (result *Result) Fail(err error) {
+	result.errs.Fail(err)
 }
 
-func (res *VirtualResult) Err() error {
-	return res.errs.Err()
+func (result *Result) Link() *error {
+	return result.errs.Link()
 }
 
-func (res *VirtualResult) Fail(err error) {
-	res.errs.Fail(err)
+func (result *Result) LinkTo(err *error) {
+	result.errs.LinkTo(err)
 }
 
-func (res *VirtualResult) Link() *error {
-	return res.errs.Link()
+func (result *Result) Unwrap() (sql.Result, error) {
+	return result.result, result.Err()
 }
 
-func (res *VirtualResult) LinkTo(err *error)  {
-	res.errs.LinkTo(err)
+func (result *Result) Raw() sql.Result {
+	return result.result
+}
+
+func ResultOf(result sql.Result, flow Linkable) *Result {
+	return &Result{result: result, errs: errChainOf(flow)}
+}
+
+func NewResultOf(result sql.Result) *Result {
+	return &Result{result: result, errs: emptyChain()}
+}
+
+func EmptyResultOf(err error) *Result {
+	return &Result{errs: errChainOfErr(err)}
 }

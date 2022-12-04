@@ -7,76 +7,94 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type VirtualDB struct {
+type DBx struct {
 	db   *sqlx.DB
 	errs errChain
 }
 
-func DB(db *sqlx.DB) *VirtualDB {
-	return &VirtualDB{db: db, errs: emptyChain()}
+func (db *DBx) ExecFlow(query string, args ...any) Splitted[*Result, *DBx] {
+	return SplitOf(db.Exec(query, args...), db)
 }
 
-func (db *VirtualDB) BeginTxx(ctx context.Context, opts *sql.TxOptions) *VirtualTxx {
-	return BeginTxx(ctx, opts, db.db)
+func (db *DBx) Exec(query string, args ...any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := db.db.Exec(query, args...)
+		return ResultOf(result, db), err
+	}, db, EmptyResultOf)
 }
 
-func (db *VirtualDB) Beginx() *VirtualTxx {
-	return Do(func() (*VirtualTxx, error) {
-		tx, err := db.db.Beginx()
-		return &VirtualTxx{tx: tx, errs: errChainOf(db)}, err
-	}, db, emptyTransactionOf)
+func (db *DBx) ExecContextFlow(ctx context.Context, query string, args ...any) Splitted[*Result, *DBx] {
+	return SplitOf(db.ExecContext(ctx, query, args...), db)
 }
 
-func (db *VirtualDB) Get(dest interface{}, query string, args ...interface{}) *VirtualDB {
-	return db.GetContext(context.Background(), dest, query, args...)
+func (db *DBx) ExecContext(ctx context.Context, query string, args ...any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := db.db.ExecContext(ctx, query, args...)
+		return ResultOf(result, db), err
+	}, db, EmptyResultOf)
+}
+func (db *DBx) Get(dest any, query string, args ...any) *DBx {
+	return pass(func() error { return db.db.Get(dest, query, args...) }, db)
 }
 
-func (db *VirtualDB) GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) *VirtualDB {
+func (db *DBx) GetContext(ctx context.Context, dest any, query string, args ...any) *DBx {
 	return pass(func() error { return db.db.GetContext(ctx, dest, query, args...) }, db)
 }
 
-func (db *VirtualDB) Select(dest interface{}, query string, args ...interface{}) *VirtualDB {
-	return db.SelectContext(context.Background(), dest, query, args...)
+func (db *DBx) Select(dest any, query string, args ...any) *DBx {
+	return pass(func() error { return db.db.Select(dest, query, args...) }, db)
 }
 
-func (db *VirtualDB) SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) *VirtualDB {
-	return pass(func() error { return db.db.SelectContext(ctx, dest, query, args...) }, db)
+func (db *DBx) SelectContext(ctx context.Context, dest any, query string, args ...any) *DBx {
+	return pass(func() error { return db.db.GetContext(ctx, dest, query, args...) }, db)
 }
 
-func (db *VirtualDB) NamedExec(query string, arg interface{}) sql.Result {
-	return db.NamedExecContext(context.Background(), query, arg)
+func (db *DBx) Beginx() *Transactionx {
+	return Do(func() (*Transactionx, error) {
+		result, err := db.db.Beginx()
+		return TransactionxOf(result, db), err
+	}, db, EmptyTransactionxOf)
 }
 
-func (db *VirtualDB) NamedExecContext(ctx context.Context, query string, arg interface{}) sql.Result {
-	return Do(func() (sql.Result, error) {
-		result, err := db.db.NamedExec(query, arg)
-		return result, err
-	}, db, emptyResultOf)
+func (db *DBx) BeginTxx(ctx context.Context, opts *sql.TxOptions) *Transactionx {
+	return Do(func() (*Transactionx, error) {
+		result, err := db.db.BeginTxx(ctx, opts)
+		return TransactionxOf(result, db), err
+	}, db, EmptyTransactionxOf)
 }
 
-func (db *VirtualDB) Exec(query string, args ...interface{}) sql.Result {
-	return db.ExecContext(context.Background(), query, args...)
-}
-
-func (db *VirtualDB) ExecContext(ctx context.Context, query string, args ...interface{}) sql.Result {
-	return Do(func() (sql.Result, error) {
-		result, err := db.db.ExecContext(ctx, query, args...)
-		return result, err
-	}, db, emptyResultOf)
-}
-
-func (db *VirtualDB) Err() error {
+func (db *DBx) Err() error {
 	return db.errs.Err()
 }
 
-func (db *VirtualDB) Fail(err error) {
+func (db *DBx) Fail(err error) {
 	db.errs.Fail(err)
 }
 
-func (db *VirtualDB) Link() *error {
+func (db *DBx) Link() *error {
 	return db.errs.Link()
 }
 
-func (res *VirtualDB) LinkTo(err *error)  {
-	res.errs.LinkTo(err)
+func (db *DBx) LinkTo(err *error) {
+	db.errs.LinkTo(err)
+}
+
+func (db *DBx) Unwrap() (*sqlx.DB, error) {
+	return db.db, db.Err()
+}
+
+func (db *DBx) Raw() *sqlx.DB {
+	return db.db
+}
+
+func DBxOf(db *sqlx.DB, flow Linkable) *DBx {
+	return &DBx{db: db, errs: errChainOf(flow)}
+}
+
+func NewDBxOf(db *sqlx.DB) *DBx {
+	return &DBx{db: db, errs: emptyChain()}
+}
+
+func EmptyDBxOf(err error) *DBx {
+	return &DBx{errs: errChainOfErr(err)}
 }

@@ -54,7 +54,7 @@ func (chain *errChain) LinkTo(err *error) {
 	chain.err = err
 }
 
-// Do executes doFunc which could error.
+// Do executes doFunc which could fail.
 // Returns doFunc result if successful or the result of or.
 // Respects a already failed flow and fails the flow correclty.
 func Do[T any](doFunc func() (T, error), flow Flow, or func(error) T) T {

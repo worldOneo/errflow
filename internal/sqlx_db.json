@@ -1,0 +1,104 @@
+{
+  "base": "DBx",
+  "baseName": "db",
+  "wraps": "*sqlx.DB",
+  "wrapName": "db",
+  "functions": [
+    {
+      "name": "Exec",
+      "returns": "*Result",
+      "onErrFactory": "EmptyResultOf",
+      "successFactory": "ResultOf",
+      "context": true,
+      "inflow": true,
+      "args": [
+        [
+          "query",
+          "string"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "NamedExec",
+      "returns": "*Result",
+      "onErrFactory": "EmptyResultOf",
+      "successFactory": "ResultOf",
+      "context": true,
+      "inflow": true,
+      "args": [
+        [
+          "query",
+          "string"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "Get",
+      "noreturn": true,
+      "context": true,
+      "args": [
+        [
+          "dest",
+          "any"
+        ],
+        [
+          "query",
+          "string"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "Select",
+      "noreturn": true,
+      "context": true,
+      "args": [
+        [
+          "dest",
+          "any"
+        ],
+        [
+          "query",
+          "string"
+        ],
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    },
+    {
+      "name": "Beginx",
+      "returns": "*Transactionx",
+      "successFactory": "TransactionxOf",
+      "onErrFactory": "EmptyTransactionxOf"
+    },
+    {
+      "name": "BeginTxx",
+      "returns": "*Transactionx",
+      "successFactory": "TransactionxOf",
+      "onErrFactory": "EmptyTransactionxOf",
+      "args": [
+        [
+          "ctx",
+          "context.Context"
+        ],
+        [
+          "opts",
+          "*sql.TxOptions"
+        ]
+      ]
+    }
+  ]
+}

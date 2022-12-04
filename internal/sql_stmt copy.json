@@ -1,0 +1,22 @@
+{
+  "base": "Stmtx",
+  "baseName": "stmtx",
+  "wraps": "*sqlx.Stmt",
+  "wrapName": "stmtx",
+  "functions": [
+    {
+      "name": "Exec",
+      "returns": "*Result",
+      "onErrFactory": "EmptyResultOf",
+      "successFactory": "ResultOf",
+      "context": true,
+      "inflow": true,
+      "args": [
+        [
+          "args...",
+          "any"
+        ]
+      ]
+    }
+  ]
+}
