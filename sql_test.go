@@ -35,16 +35,13 @@ func test() (User, []Post, error) {
 		ExecFlow("INSERT INTO logs").
 		Run(func(vr *Result) { logID = vr.LastInsertId() }).
 		Commit()
-	
-	response := LinkFlow(flow, NewHTTPClient(client)).
-		Get("http://example.com")
 
 	if err := flow.Err(); err != nil {
 		err = fmt.Errorf("failed to fetch posts: %v", err)
 		return user, nil, err
 	}
 
-	log.Printf("Fetched posts with log: %d, and a random status code: %d", logID, response.StatusCode)
+	log.Printf("Fetched posts with log: %d", logID)
 
 	return user, posts, nil
 }
