@@ -49,7 +49,7 @@ func ResultOf(result sql.Result, flow Linkable) *Result {
 	return &Result{result: result, errs: errChainOf(flow)}
 }
 
-func NewResultOf(result sql.Result) *Result {
+func NewResult(result sql.Result) *Result {
 	return &Result{result: result, errs: emptyChain()}
 }
 

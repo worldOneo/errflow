@@ -1,11 +1,11 @@
 package errflow
 
-type Splitted[F, S Flow] struct {
+type Splitted[F any, S Flow] struct {
 	f F
 	s S
 }
 
-func SplitOf[F, S Flow](f F, s S) Splitted[F, S] {
+func SplitOf[F any, S Flow](f F, s S) Splitted[F, S] {
 	return Splitted[F, S]{f, s}
 }
 

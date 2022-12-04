@@ -13,10 +13,6 @@
       "inflow": true,
       "args": [
         [
-          "dest",
-          "any"
-        ],
-        [
           "args...",
           "any"
         ]

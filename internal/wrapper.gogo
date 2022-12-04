@@ -1,13 +1,13 @@
 {{define "args"}}{{range .args}}{{index . 0}} {{index . 1}}, {{end}}{{end}}
 {{define "pass"}}{{range .args}}{{index . 0}}, {{end}}{{end}}
 {{$base := .}}
+package errflow
 type {{.base}} struct {
 	{{.wrapName}}   {{.wraps}}
 	errs errChain
 }
 
-{{range .functions}}{{ if not .noreturn }}
-{{if .inflow}}
+{{range .functions}}{{ if not .noreturn }} {{if .inflow}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
 	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
 }{{end}}
@@ -17,8 +17,8 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.re
 		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
 		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
 	}, {{$base.baseName}}, {{.onErrFactory}})
-}{{if .context}}
-{{if .inflow}}
+}{{if .context}}{{if .inflow}}
+
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}ContextFlow(ctx context.Context, {{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
 	return SplitOf({{$base.baseName}}.{{.name}}Context(ctx, {{template "pass" .}}), {{$base.baseName}})
 }{{end}}
@@ -28,7 +28,7 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, 
 		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
 		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
 	}, {{$base.baseName}}, {{.onErrFactory}})
-}{{end}}{{else}}
+}{{end}}{{else if not .noerr}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
 	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}}) }, {{$base.baseName}})
 }
@@ -36,7 +36,18 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$b
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) *{{$base.base}} {
 	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}}) }, {{$base.baseName}})
 }
-{{end}}{{end}}{{end}}
+{{end}}{{else}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
+	{{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
+	return {{$base.baseName}}
+}
+{{if .context}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) *{{$base.base}} {
+	{{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
+	return {{$base.baseName}}
+}
+{{end}}
+{{end}}{{end}}
 
 func ({{$base.baseName}} *{{$base.base}}) Err() error {
 	return {{$base.baseName}}.errs.Err()
@@ -66,7 +77,7 @@ func {{$base.base}}Of({{$base.wrapName}} {{$base.wraps}}, flow Linkable) *{{$bas
 	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: errChainOf(flow)}
 }
 
-func New{{$base.base}}Of({{$base.wrapName}} {{$base.wraps}}) *{{$base.base}} {
+func New{{$base.base}}({{$base.wrapName}} {{$base.wraps}}) *{{$base.base}} {
 	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: emptyChain()}
 }
 

@@ -24,7 +24,7 @@ func test() (User, []Post, error) {
 	var user User
 	var posts []Post
 	var logID int64
-	flow := NewDBxOf(db)
+	flow := NewDBx(db)
 	flow.
 		Beginx().
 		Get(&user, "SELECT * FROM usesr WHERE `name`=?;", "Bobby").

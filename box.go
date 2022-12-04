@@ -36,6 +36,19 @@ func BoxOf[T any](fn func() (T, error), flow Linkable) Box[T] {
 	}
 }
 
+func (box *Box[T]) Put(fn func() T) *Box[T] {
+	if box.sealed {
+		return box
+	}
+	if box.Err() != nil {
+		return box
+	}
+	box.present = true
+	box.sealed = true
+	box.value = fn()
+	return box
+}
+
 func (box *Box[T]) Fill(fn func() (T, error)) *Box[T] {
 	if box.sealed {
 		return box
@@ -43,12 +56,12 @@ func (box *Box[T]) Fill(fn func() (T, error)) *Box[T] {
 	if box.Err() != nil {
 		return box
 	}
-	box.sealed = true
 	v, err := fn()
 	if err != nil {
 		box.errs.Fail(err)
 		return box
 	}
+	box.sealed = true
 	box.present = true
 	box.value = v
 	return box

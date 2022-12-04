@@ -1,0 +1,22 @@
+{
+  "base": "Result",
+  "baseName": "result",
+  "wraps": "sql.Result",
+  "wrapName": "result",
+  "functions": [
+    {
+      "name": "LastInsertId",
+      "returns": "int64",
+      "onErrFactory": "func(_ error) int64 { return 0 }",
+      "context": false,
+      "args": []
+    },
+    {
+      "name": "RowsAffected",
+      "returns": "int64",
+      "onErrFactory": "func(_ error) int64 { return 0 }",
+      "context": false,
+      "args": []
+    }
+  ]
+}

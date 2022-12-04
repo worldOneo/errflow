@@ -33,6 +33,28 @@ func (db *DBx) ExecContext(ctx context.Context, query string, args ...any) *Resu
 		return ResultOf(result, db), err
 	}, db, EmptyResultOf)
 }
+
+func (db *DBx) NamedExecFlow(query string, args any) Splitted[*Result, *DBx] {
+	return SplitOf(db.NamedExec(query, args), db)
+}
+
+func (db *DBx) NamedExec(query string, args any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := db.db.NamedExec(query, args)
+		return ResultOf(result, db), err
+	}, db, EmptyResultOf)
+}
+
+func (db *DBx) NamedExecContextFlow(ctx context.Context, query string, args any) Splitted[*Result, *DBx] {
+	return SplitOf(db.NamedExecContext(ctx, query, args), db)
+}
+
+func (db *DBx) NamedExecContext(ctx context.Context, query string, args any) *Result {
+	return Do(func() (*Result, error) {
+		result, err := db.db.NamedExecContext(ctx, query, args)
+		return ResultOf(result, db), err
+	}, db, EmptyResultOf)
+}
 func (db *DBx) Get(dest any, query string, args ...any) *DBx {
 	return pass(func() error { return db.db.Get(dest, query, args...) }, db)
 }
@@ -91,7 +113,7 @@ func DBxOf(db *sqlx.DB, flow Linkable) *DBx {
 	return &DBx{db: db, errs: errChainOf(flow)}
 }
 
-func NewDBxOf(db *sqlx.DB) *DBx {
+func NewDBx(db *sqlx.DB) *DBx {
 	return &DBx{db: db, errs: emptyChain()}
 }
 

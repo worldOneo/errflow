@@ -84,3 +84,5 @@ func pass[T Flow](doFunc func() error, flow T) T {
 type linkedFlow struct {
 	err *error
 }
+
+func empty[T any](_ error) (t T) { return }

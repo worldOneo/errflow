@@ -60,7 +60,7 @@ func StmtOf(stmt *sql.Stmt, flow Linkable) *Stmt {
 	return &Stmt{stmt: stmt, errs: errChainOf(flow)}
 }
 
-func NewStmtOf(stmt *sql.Stmt) *Stmt {
+func NewStmt(stmt *sql.Stmt) *Stmt {
 	return &Stmt{stmt: stmt, errs: emptyChain()}
 }
 

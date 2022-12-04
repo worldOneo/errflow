@@ -76,7 +76,7 @@ func TransactionxOf(tx *sqlx.Tx, flow Linkable) *Transactionx {
 	return &Transactionx{tx: tx, errs: errChainOf(flow)}
 }
 
-func NewTransactionxOf(tx *sqlx.Tx) *Transactionx {
+func NewTransactionx(tx *sqlx.Tx) *Transactionx {
 	return &Transactionx{tx: tx, errs: emptyChain()}
 }
 

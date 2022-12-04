@@ -76,7 +76,7 @@ func StmtxOf(stmt *sqlx.Stmt, flow Linkable) *Stmtx {
 	return &Stmtx{stmt: stmt, errs: errChainOf(flow)}
 }
 
-func NewStmtxOf(stmt *sqlx.Stmt) *Stmtx {
+func NewStmtx(stmt *sqlx.Stmt) *Stmtx {
 	return &Stmtx{stmt: stmt, errs: emptyChain()}
 }
 
