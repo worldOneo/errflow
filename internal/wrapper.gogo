@@ -1,0 +1,25 @@
+{{define "args"}}{{range .args}}{{index . 0}} {{index . 1}}, {{end}}{{end}}
+{{define "pass"}}{{range .args}}{{index . 0}}, {{end}}{{end}}
+type {{.base}} struct {
+	{{.wrapName}}   {{.wraps}}
+	errs errChain
+}
+{{with $base := .}}{{range .functions}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
+	return tx.{{.name}}ContextFlow(context.Background(), query, args...)
+}
+
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}ContextFlow(ctx context.Context, {{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
+	return SplitOf(tx.{{.name}}Context(ctx, {{template "pass" .}}), {{$base.baseName}})
+}
+
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
+	return tx.{{.name}}Context(context.Background(), {{template "pass" .}})
+}
+
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) {{.returns}} {
+	return Do(func() ({{.returns}}, error) {
+		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
+		return result, err
+	}, {{$base.baseName}}, {{.onErrFactory}})
+}{{end}}{{end}}
