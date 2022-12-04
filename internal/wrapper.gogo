@@ -2,6 +2,8 @@
 {{define "pass"}}{{range .args}}{{index . 0}}, {{end}}{{end}}
 {{$base := .}}
 package errflow
+
+// {{.base}} is the flow wrapper of {{.wraps}}
 type {{.base}} struct {
 	{{.wrapName}}   {{.wraps}}
 	errs errChain
@@ -11,10 +13,12 @@ type {{.base}} struct {
 {{if not .noerr}}
 	{{ if not .noreturn }}
 		{{if .inflow}}
+// {{.name}}Flow does the same as {{$base.wraps}}.{{.name}} but splits the flow.
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
 	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
 }
 		{{end}}
+// {{.name}} does the same as {{$base.wraps}} but is a noop if this flow already failed.
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
 	return Do(func() ({{.returns}}, error) {
 		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
@@ -22,6 +26,8 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.re
 	}, {{$base.baseName}}, {{.onErrFactory}})
 }
 	{{else}}
+// {{.name}} does the same as {{$base.wraps}} but is a noop if this flow already failed.
+// Returs this flow
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
 	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}}) }, {{$base.baseName}})
 }
@@ -29,16 +35,29 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$b
 {{else}}
 	{{ if not .noreturn }}
 			{{if .inflow}}
+// {{.name}}Flow does the same as {{$base.wraps}}.{{.name}} but splits the flow.
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
 	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
 }
 			{{end}}
+// {{.name}} does the same as {{$base.wraps}}.{{.name}} {{if .successFactory}} but wraps the result into another Flow{{end}}.
+{{if .onErrFactory}}// This is a noop if the flow already failed.{{end}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
+	{{if .onErrFactory}}if {{$base.baseName}}.errs.Err() != nil {
+		return {{.onErrFactory}}({{$base.baseName}}.errs.Err())
+	}{{end}}
 	result := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
 	return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}
 }
 	{{else}}
+
+// {{.name}} does the same as {{$base.wraps}}.{{.name}} but is a noop if this flow
+// failed.
+// Returns this flow.
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
+	if {{$base.baseName}}.errs.Err() != nil {
+		return {{$base.baseName}}
+	}
 	{{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
 	return {{$base.baseName}}
 }
@@ -46,38 +65,51 @@ func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$b
 {{end}}
 {{end}}
 
+// Err returns the error of this flow if any happend.
 func ({{$base.baseName}} *{{$base.base}}) Err() error {
 	return {{$base.baseName}}.errs.Err()
 }
 
+// Fail ends this flow with err
 func ({{$base.baseName}} *{{$base.base}}) Fail(err error) {
 	{{$base.baseName}}.errs.Fail(err)
 }
 
+// Link returns the base error of this flow.
 func ({{$base.baseName}} *{{$base.base}}) Link() *error {
 	return {{$base.baseName}}.errs.Link()
 }
 
+// LinkTo merges err as base into this flow.
 func ({{$base.baseName}} *{{$base.base}}) LinkTo(err *error) {
 	{{$base.baseName}}.errs.LinkTo(err)
 }
 
+// Unwrap returns the internal value and the produced error if any.
 func ({{$base.baseName}} *{{$base.base}}) Unwrap() ({{$base.wraps}}, error) {
 	return {{$base.baseName}}.{{$base.wrapName}}, {{$base.baseName}}.Err()
 }
 
+// Raw returns the internal value.
+// No Guarantees.
 func ({{$base.baseName}} *{{$base.base}}) Raw() {{$base.wraps}} {
 	return {{$base.baseName}}.{{$base.wrapName}}
 }
 
+// {{$base.base}}Of create a new {{$base.base}} and is linked to flow.
+// They are linked to gether and if one errors the error is propagated.
 func {{$base.base}}Of({{$base.wrapName}} {{$base.wraps}}, flow Linkable) *{{$base.base}} {
 	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: errChainOf(flow)}
 }
 
+// New{{$base.base}} create a new {{$base.base}} and is the root of a flow.
+// It will catch any error that happens in the future.
 func New{{$base.base}}({{$base.wrapName}} {{$base.wraps}}) *{{$base.base}} {
 	return &{{$base.base}}{{"{"}}{{$base.wrapName}}: {{$base.wrapName}}, errs: emptyChain()}
 }
 
+// Empty{{$base.base}}Of returns an already failed {{$base.base}}.
+// Calls will have no effects on it.
 func Empty{{$base.base}}Of(err error) *{{$base.base}} {
 	return &{{$base.base}}{errs: errChainOfErr(err)}
 }

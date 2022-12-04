@@ -3,6 +3,7 @@ package errflow
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -19,6 +20,8 @@ type Post struct {
 	title  string `sql:"title"`
 }
 
+var client *http.Client = &http.Client{}
+
 func test() (User, []Post, error) {
 	var db *sqlx.DB
 	var user User
@@ -32,13 +35,16 @@ func test() (User, []Post, error) {
 		ExecFlow("INSERT INTO logs").
 		Run(func(vr *Result) { logID = vr.LastInsertId() }).
 		Commit()
+	
+	response := LinkFlow(flow, NewHTTPClient(client)).
+		Get("http://example.com")
 
 	if err := flow.Err(); err != nil {
 		err = fmt.Errorf("failed to fetch posts: %v", err)
 		return user, nil, err
 	}
 
-	log.Printf("Fetched posts with log: %d", logID)
+	log.Printf("Fetched posts with log: %d, and a random status code: %d", logID, response.StatusCode)
 
 	return user, posts, nil
 }

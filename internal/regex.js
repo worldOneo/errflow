@@ -19,6 +19,8 @@ const primitives = [
   "rune",
   "byte",
   "error",
+  "int",
+  "uint",
 ];
 ["8", "16", "32", "64"].forEach(size =>
   primitives.push(`int${size}`, `uint${size}`)
@@ -248,7 +250,6 @@ func (s *Stmt) QueryContext(ctx context.Context, args ...any) (*Rows, error)
 func (s *Stmt) QueryRow(args ...any) *Row
 func (s *Stmt) QueryRowContext(ctx context.Context, args ...any) *Row`
   );
-  flown.functions.push(...tx().functions);
   return flown;
 };
 
@@ -281,9 +282,88 @@ const result = () => {
     "sql.Result",
     wraps,
     `func (s *Result) LastInsertId() (int64, error)
-func (s *Result) RowsAffected() (int64, error)`
+    func (s *Result) RowsAffected() (int64, error)`
   );
   return flown;
 };
+const sqldb = () =>
+  toFlow(
+    "DB",
+    "sql",
+    "*sql.DB",
+    wraps,
+    `func (db *DB) Begin() (*Tx, error)
+func (db *DB) BeginTx(ctx context.Context, opts *TxOptions) (*Tx, error)
+func (db *DB) Close() error
+func (db *DB) Conn(ctx context.Context) (*Conn, error)
+func (db *DB) Driver() driver.Driver
+func (db *DB) Exec(query string, args ...any) (Result, error)
+func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (Result, error)
+func (db *DB) Ping() error
+func (db *DB) PingContext(ctx context.Context) error
+func (db *DB) Prepare(query string) (*Stmt, error)
+func (db *DB) PrepareContext(ctx context.Context, query string) (*Stmt, error)
+func (db *DB) Query(query string, args ...any) (*Rows, error)
+func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*Rows, error)
+func (db *DB) QueryRow(query string, args ...any) *Row
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *Row
+func (db *DB) SetConnMaxIdleTime(d time.Duration)
+func (db *DB) SetConnMaxLifetime(d time.Duration)
+func (db *DB) SetMaxIdleConns(n int)
+func (db *DB) SetMaxOpenConns(n int)
+func (db *DB) Stats() DBStats`
+  );
 
-console.log(JSON.stringify(result()));
+const sqlxdb = () => {
+  let flown = toFlow(
+    "DBx",
+    "sqlx",
+    "*sqlx.DB",
+    wraps,
+    `func (db *DB) BeginTxx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
+func (db *DB) Beginx() (*Tx, error)
+func (db *DB) BindNamed(query string, arg interface{}) (string, []interface{}, error)
+func (db *DB) Connx(ctx context.Context) (*Conn, error)
+func (db *DB) DriverName() string
+func (db *DB) Get(dest interface{}, query string, args ...interface{}) error
+func (db *DB) GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error
+func (db *DB) MapperFunc(mf func(string) string)
+func (db *DB) MustBegin() *Tx
+func (db *DB) MustBeginTx(ctx context.Context, opts *sql.TxOptions) *Tx
+func (db *DB) MustExec(query string, args ...interface{}) sql.Result
+func (db *DB) MustExecContext(ctx context.Context, query string, args ...interface{}) sql.Result
+func (db *DB) NamedExec(query string, arg interface{}) (sql.Result, error)
+func (db *DB) NamedExecContext(ctx context.Context, query string, arg interface{}) (sql.Result, error)
+func (db *DB) NamedQuery(query string, arg interface{}) (*Rows, error)
+func (db *DB) NamedQueryContext(ctx context.Context, query string, arg interface{}) (*Rows, error)
+func (db *DB) PrepareNamed(query string) (*NamedStmt, error)
+func (db *DB) PrepareNamedContext(ctx context.Context, query string) (*NamedStmt, error)
+func (db *DB) Preparex(query string) (*Stmt, error)
+func (db *DB) PreparexContext(ctx context.Context, query string) (*Stmt, error)
+func (db *DB) QueryRowx(query string, args ...interface{}) *Row
+func (db *DB) QueryRowxContext(ctx context.Context, query string, args ...interface{}) *Row
+func (db *DB) Queryx(query string, args ...interface{}) (*Rows, error)
+func (db *DB) QueryxContext(ctx context.Context, query string, args ...interface{}) (*Rows, error)
+func (db *DB) Rebind(query string) string
+func (db *DB) Select(dest interface{}, query string, args ...interface{}) error
+func (db *DB) SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error`
+  );
+  flown.functions.push(...sqldb().functions);
+  return flown;
+};
+
+const httpClient = () =>
+  toFlow(
+    "HTTPClient",
+    "http",
+    "*http.Client",
+    wraps,
+    `func (c *Client) CloseIdleConnections()
+func (c *Client) Do(req *Request) (*Response, error)
+func (c *Client) Get(url string) (resp *Response, err error)
+func (c *Client) Head(url string) (resp *Response, err error)
+func (c *Client) Post(url, contentType string, body io.Reader) (resp *Response, err error)
+func (c *Client) PostForm(url string, data url.Values) (resp *Response, err error)`
+  );
+
+console.log(JSON.stringify(sqldb()));

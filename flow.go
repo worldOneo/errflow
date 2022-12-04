@@ -1,15 +1,28 @@
 package errflow
 
+// Flow is the base error handling interface.
 type Flow interface {
+	// Err returns any error if one occurred
 	Err() error
+	// Fail ends this flow with the error
 	Fail(error)
 }
 
+// Linkable is a composition interface for Flow
 type Linkable interface {
+	// Link returns the base error this element
 	Link() *error
+	// LinkTo mus replace the base error with the new error
 	LinkTo(*error)
 }
 
+// LinkFlow links new to old making old fail if new fails and vice versa
+func LinkFlow[T Linkable](old Linkable, new T) T {
+	old.LinkTo(new.Link())
+	return new
+}
+
+// LinkableFlow combines Flow and Linkable
 type LinkableFlow interface {
 	Linkable
 	Flow

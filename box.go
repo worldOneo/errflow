@@ -1,5 +1,6 @@
 package errflow
 
+/*
 type Box[T any] struct {
 	sealed  bool
 	present bool
@@ -78,3 +79,4 @@ func (box *Box[T]) Err() error {
 func (box *Box[T]) Fail(err error) {
 	box.errs.Fail(err)
 }
+*/
