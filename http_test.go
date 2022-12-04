@@ -6,6 +6,6 @@ import (
 )
 
 func TestHttpClient(t *testing.T) {
-	flow := NewHttpClientOf(&http.Client{})
+	flow := NewHttpClient(&http.Client{})
 	flow.Get("http://example.com")
 }

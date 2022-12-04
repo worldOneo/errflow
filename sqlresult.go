@@ -7,18 +7,26 @@ type Result struct {
 	errs   errChain
 }
 
+func (result *Result) LastInsertIdFlow() Splitted[int64, *Result] {
+	return SplitOf(result.LastInsertId(), result)
+}
+
 func (result *Result) LastInsertId() int64 {
 	return Do(func() (int64, error) {
 		result, err := result.result.LastInsertId()
 		return result, err
-	}, result, func(_ error) int64 { return 0 })
+	}, result, empty[int64])
+}
+
+func (result *Result) RowsAffectedFlow() Splitted[int64, *Result] {
+	return SplitOf(result.RowsAffected(), result)
 }
 
 func (result *Result) RowsAffected() int64 {
 	return Do(func() (int64, error) {
 		result, err := result.result.RowsAffected()
 		return result, err
-	}, result, func(_ error) int64 { return 0 })
+	}, result, empty[int64])
 }
 
 func (result *Result) Err() error {

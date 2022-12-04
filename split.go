@@ -10,7 +10,21 @@ func SplitOf[F any, S Flow](f F, s S) Splitted[F, S] {
 }
 
 func (splitted Splitted[F, S]) Run(run func(F)) S {
+	if splitted.s.Err() != nil {
+		return splitted.s
+	}
 	run(splitted.f)
+	return splitted.s
+}
+
+func (splitted Splitted[F, S]) RunErr(run func(F) error) S {
+	if splitted.s.Err() != nil {
+		return splitted.s
+	}
+	err := run(splitted.f)
+	if err != nil {
+		splitted.s.Fail(err)
+	}
 	return splitted.s
 }
 

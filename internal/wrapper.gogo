@@ -7,47 +7,44 @@ type {{.base}} struct {
 	errs errChain
 }
 
-{{range .functions}}{{ if not .noreturn }} {{if .inflow}}
+{{range .functions}}
+{{if not .noerr}}
+	{{ if not .noreturn }}
+		{{if .inflow}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
 	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
-}{{end}}
-
+}
+		{{end}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
 	return Do(func() ({{.returns}}, error) {
 		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
 		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
 	}, {{$base.baseName}}, {{.onErrFactory}})
-}{{if .context}}{{if .inflow}}
-
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}ContextFlow(ctx context.Context, {{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
-	return SplitOf({{$base.baseName}}.{{.name}}Context(ctx, {{template "pass" .}}), {{$base.baseName}})
-}{{end}}
-
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) {{.returns}} {
-	return Do(func() ({{.returns}}, error) {
-		result, err := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
-		return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}, err
-	}, {{$base.baseName}}, {{.onErrFactory}})
-}{{end}}{{else if not .noerr}}
+}
+	{{else}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
 	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}}) }, {{$base.baseName}})
 }
-{{if .context}}
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) *{{$base.base}} {
-	return pass(func() error { return {{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}}) }, {{$base.baseName}})
+	{{end}}
+{{else}}
+	{{ if not .noreturn }}
+			{{if .inflow}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}Flow({{template "args" .}}) Splitted[{{.returns}}, *{{$base.base}}] {
+	return SplitOf({{$base.baseName}}.{{.name}}({{template "pass" .}}), {{$base.baseName}})
 }
-{{end}}{{else}}
+			{{end}}
+func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) {{.returns}} {
+	result := {{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
+	return {{if .successFactory}}{{.successFactory}}(result, {{$.baseName}}){{else}}result{{end}}
+}
+	{{else}}
 func ({{$base.baseName}} *{{$base.base}}) {{.name}}({{template "args" .}}) *{{$base.base}} {
 	{{$base.baseName}}.{{$base.wrapName}}.{{.name}}({{template "pass" .}})
 	return {{$base.baseName}}
 }
-{{if .context}}
-func ({{$base.baseName}} *{{$base.base}}) {{.name}}Context(ctx context.Context, {{template "args" .}}) *{{$base.base}} {
-	{{$base.baseName}}.{{$base.wrapName}}.{{.name}}Context(ctx, {{template "pass" .}})
-	return {{$base.baseName}}
-}
+	{{end}}
 {{end}}
-{{end}}{{end}}
+{{end}}
 
 func ({{$base.baseName}} *{{$base.base}}) Err() error {
 	return {{$base.baseName}}.errs.Err()
